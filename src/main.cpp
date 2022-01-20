@@ -82,7 +82,7 @@ void HJDrive::read_config()
 			//cout<<"col count is:"<<sqlite3_column_count(stmt)<<endl;
 			sqlite3_step(stmt);
 			// cout<<"col id:"<<sqlite3_column_int(stmt,0)<<endl;			//第0列代表ID
-			// cout<<"col timestamp:"<<sqlite3_column_int(stmt,1)<<endl;	//第1列代表timestamp
+			// cout<<"col timestamp:"<<sqlite3_column_int(stmt,2)<<endl;	//第2列代表mcu_timestamp
 			text =(const char*)sqlite3_column_text(stmt,3);						//第3列是json字符串
 			//开始解析json文件
 			//cout<<text<<endl;
@@ -144,8 +144,8 @@ void HJDrive::read_hcp_stream_10ms()
 			sqlite3_step(stmt);
 			
 			// cout<<"col id:"<<sqlite3_column_int(stmt,0)<<endl;
-			// cout<<"col timestamp:"<<sqlite3_column_int64(stmt,1)<<endl;
-
+			// cout<<"col timestamp:"<<sqlite3_column_int64(stmt,2)<<endl; //第2列代表mcu_timestamp
+			
 			blobptr = sqlite3_column_blob(stmt,3);
 			blobsize = sqlite3_column_bytes(stmt,3);
 			
@@ -155,11 +155,25 @@ void HJDrive::read_hcp_stream_10ms()
 			raw_container.buffer.resize(blobsize);
 			memcpy(raw_container.buffer.data(),blobptr,blobsize);
 			// cout<<*raw_container.buffer.begin()<<endl;
-			memcpy(&vdyn[0],&raw_container.buffer[0]+start,length);
-			outfile<<"vdyn"<<" "<<"timestamp"<<" "<<"yawrate"<<endl;
-			outfile<<0<<" ";
-			outfile<<vdyn[0].VDYN_timestamp<<" ";
+			memcpy(&vdyn[0],&raw_container.buffer[start],length);
+
+			// float yawRate;
+			// memcpy(&yawRate,&raw_container.buffer[104],4);
+			// cout<<"yaw rate is:"<<yawRate<<endl;
+
+			outfile<<"mcutimestamp"<<" ";
+			outfile<<"LongitudingalVelocity"<<" ";
+			outfile<<"LateralVelocity"<<" ";
+			outfile<<"YawRate"<<" ";
+			outfile<<"LongitudinalAcceleration"<<" ";
+			outfile<<"LateralAcceletation"<<" ";
+			outfile<<endl;
+			outfile<<sqlite3_column_int64(stmt,2)<<" ";		//第2列代表mcu_timestamp
+			outfile<<vdyn[0].VDYN_LongitudinalVelocity<<" ";
+			outfile<<vdyn[0].VDYN_LateralVelocity<<" ";
 			outfile<<vdyn[0].VDYN_EgoYawRate<<" ";
+			outfile<<vdyn[0].VDYN_LongitudinalAcceleration<<" ";
+			outfile<<vdyn[0].VDYN_LateralAcceleration<<" ";	
 			outfile<<endl;
 
 	
@@ -167,20 +181,24 @@ void HJDrive::read_hcp_stream_10ms()
 			rs = sqlite3_step(stmt);
 			while(rs==SQLITE_ROW)
 			{
-				i++;
+				// i++;
 				blobptr = sqlite3_column_blob(stmt,3);
 				blobsize = sqlite3_column_bytes(stmt,3);
 
 				raw_container.bytes = blobsize;
 				raw_container.buffer.resize(blobsize);
 				memcpy(raw_container.buffer.data(),blobptr,blobsize);
-				
-				memcpy(&vdyn[0],&raw_container.buffer[0]+start,length);
+				//copy进入结构体
+				memcpy(&vdyn[0],&raw_container.buffer[start],length);
 
-				outfile<<i<<" ";
-				outfile<<vdyn[0].VDYN_timestamp<<" ";
+				outfile<<sqlite3_column_int64(stmt,2)<<" ";		//第2列代表mcu_timestamp
+				outfile<<vdyn[0].VDYN_LongitudinalVelocity<<" ";
+				outfile<<vdyn[0].VDYN_LateralVelocity<<" ";
 				outfile<<vdyn[0].VDYN_EgoYawRate<<" ";
+				outfile<<vdyn[0].VDYN_LongitudinalAcceleration<<" ";
+				outfile<<vdyn[0].VDYN_LateralAcceleration<<" ";	
 				outfile<<endl;
+
 
 				rs = sqlite3_step(stmt);
 			}
